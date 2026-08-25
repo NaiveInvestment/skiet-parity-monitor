@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SKIET 합병 패리티 모니터</title>
+  <style>
+:root {
+  color-scheme: light dark;
+  --paper: #ffffff;
+  --paper-soft: #f4f6f8;
+  --paper-strong: #e9edf1;
+  --ink: #111b2b;
+  --muted: #607083;
+  --line: #d7dee5;
+  --line-strong: #aeb9c4;
+  --structure: #123b64;
+  --structure-mid: #567899;
+  --structure-soft: #dce8f2;
+  --accent: #bd1726;
+  --accent-soft: #f7e5e8;
+  --positive: #176b4d;
+  --positive-soft: #e3f1eb;
+  --warning: #95620a;
+  --warning-soft: #f7eed8;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --frame: 1120px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #151c24;
+    --paper-soft: #1d2732;
+    --paper-strong: #273441;
+    --ink: #edf3f8;
+    --muted: #a8b5c1;
+    --line: #364553;
+    --line-strong: #536575;
+    --structure: #8eb5d8;
+    --structure-mid: #a6bfd5;
+    --structure-soft: #23394c;
+    --accent: #f26d78;
+    --accent-soft: #46262d;
+    --positive: #63c59f;
+    --positive-soft: #183b31;
+    --warning: #e4b85f;
+    --warning-soft: #3d321d;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #151c24;
+  --paper-soft: #1d2732;
+  --paper-strong: #273441;
+  --ink: #edf3f8;
+  --muted: #a8b5c1;
+  --line: #364553;
+  --line-strong: #536575;
+  --structure: #8eb5d8;
+  --structure-mid: #a6bfd5;
+  --structure-soft: #23394c;
+  --accent: #f26d78;
+  --accent-soft: #46262d;
+  --positive: #63c59f;
+  --positive-soft: #183b31;
+  --warning: #e4b85f;
+  --warning-soft: #3d321d;
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--paper); scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.58;
+  text-rendering: optimizeLegibility;
+  overflow-wrap: anywhere;
+}
+
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 20;
+  transform: translateY(-160%);
+  padding: 10px 14px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.skip-link:focus { transform: translateY(0); }
+
+.page-shell {
+  width: min(100%, var(--frame));
+  margin: 0 auto;
+  padding: 0 clamp(18px, 3vw, 42px) 64px;
+}
+
+.masthead {
+  padding: clamp(22px, 3.4vw, 34px) 0 18px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.kicker {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1, h2, h3, p { margin-top: 0; }
+
+h1 {
+  max-width: 24ch;
+  margin-bottom: 8px;
+  font-size: clamp(26px, 3vw, 34px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+.deck {
+  max-width: 78ch;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: clamp(14px, 1.4vw, 15.5px);
+  line-height: 1.55;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.section {
+  padding: clamp(24px, 3.4vw, 34px) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.section:last-of-type { border-bottom: 0; }
+
+.section-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.42fr);
+  gap: 20px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+
+.section-no {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.section h2 {
+  margin-bottom: 0;
+  font-size: clamp(21px, 2.2vw, 26px);
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  word-break: keep-all;
+}
+
+.section-note { margin: 0; color: var(--muted); font-size: 13px; }
+
+.signal-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 2.1fr) minmax(250px, 0.9fr);
+  gap: clamp(20px, 3vw, 32px);
+  padding: clamp(20px, 2.8vw, 30px);
+  border-top: 6px solid var(--warning);
+  background: var(--paper-soft);
+}
+
+.signal-panel.state-buy { border-top-color: var(--positive); }
+.signal-panel.state-sell { border-top-color: var(--accent); }
+.signal-panel.state-hold { border-top-color: var(--warning); }
+
+.signal-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.data-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.signal-word {
+  margin: 2px 0 0;
+  font-size: clamp(50px, 7.6vw, 80px);
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+}
+
+.state-buy .signal-word { color: var(--positive); }
+.state-sell .signal-word { color: var(--accent); }
+.state-hold .signal-word { color: var(--warning); }
+
+.signal-target {
+  margin: 2px 0 10px;
+  font-size: clamp(16px, 1.9vw, 20px);
+  font-weight: 800;
+  word-break: keep-all;
+}
+
+.signal-reason { max-width: 68ch; margin: 0 0 6px; }
+
+.signal-scope { margin: 0; color: var(--muted); font-size: 12px; }
+
+.answer-aside {
+  padding-left: clamp(0px, 3vw, 30px);
+  border-left: 1px solid var(--line-strong);
+}
+
+.fact-list { display: grid; gap: 12px; margin: 0; }
+.fact-list div { min-width: 0; }
+.fact-list dt { color: var(--muted); font-size: 11px; }
+.fact-list dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 18px 0 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.metric {
+  min-width: 0;
+  padding: 14px clamp(10px, 1.5vw, 18px);
+  border-right: 1px solid var(--line);
+}
+
+.metric:first-child { padding-left: 0; }
+.metric:last-child { padding-right: 0; border-right: 0; }
+
+.metric dt {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.metric dd {
+  margin: 0;
+  font-size: clamp(19px, 2.2vw, 26px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.metric .up { color: var(--positive); }
+.metric .down, .metric .focus { color: var(--accent); }
+
+.price-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: clamp(14px, 2vw, 26px);
+  align-items: end;
+}
+
+.price-field { min-width: 0; }
+
+.price-field label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.price-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 2px;
+  border: 0;
+  border-bottom: 2px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: clamp(20px, 2.4vw, 26px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.price-field input:focus { border-bottom-color: var(--accent); outline: none; }
+
+.price-field .quote-link {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.reset-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper-soft);
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.reset-btn:hover { color: var(--ink); border-color: var(--ink); }
+
+.dominant-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(260px, 0.8fr);
+  gap: clamp(24px, 3.5vw, 36px);
+  align-items: start;
+}
+
+.figure { min-width: 0; margin: 0; }
+
+.figure-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 20px;
+  margin-bottom: 12px;
+  padding-top: 8px;
+  border-top: 2px solid var(--ink);
+}
+
+.figure-title { margin: 0; font-size: 16px; line-height: 1.35; }
+
+.unit { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.source { margin: 9px 0 0; color: var(--muted); font-size: 11px; }
+
+.insight-list { margin: 0; padding: 0; list-style: none; }
+
+.insight-list li { padding: 10px 0; border-top: 1px solid var(--line); }
+.insight-list li:first-child { border-top-color: var(--line-strong); }
+
+.eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.status::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--structure-mid);
+  content: "";
+}
+
+.status.good::before { background: var(--positive); }
+.status.risk::before { background: var(--accent); }
+.status.watch::before { background: var(--warning); }
+
+.table-region {
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  border-top: 2px solid var(--ink);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+caption { padding: 0 0 10px; font-weight: 750; text-align: left; }
+
+th, td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: var(--structure);
+  color: var(--paper);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+td.num, th.num { text-align: right; }
+
+tbody tr:nth-child(even) { background: color-mix(in srgb, var(--structure-soft) 48%, transparent); }
+
+td.focus { color: var(--accent); font-weight: 850; }
+
+tbody tr.trigger-row {
+  background: var(--accent-soft);
+  font-weight: 800;
+}
+
+.timeline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 2px solid var(--structure);
+}
+
+.timeline li {
+  position: relative;
+  min-width: 0;
+  padding: 16px 12px 0 0;
+}
+
+.timeline li::before {
+  position: absolute;
+  top: -6px;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--structure);
+  content: "";
+}
+
+.timeline li.key::before { background: var(--accent); }
+
+.timeline time {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline strong { display: block; margin-top: 4px; font-size: 13.5px; }
+
+.timeline p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; }
+
+.footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  padding-top: 24px;
+  color: var(--muted);
+  font-size: 12px;
+  border-top: 1px solid var(--line-strong);
+}
+
+@media (max-width: 900px) {
+  .section-head,
+  .signal-panel,
+  .dominant-grid { grid-template-columns: minmax(0, 1fr); }
+
+  .answer-aside {
+    padding-top: 22px;
+    padding-left: 0;
+    border-top: 1px solid var(--line-strong);
+    border-left: 0;
+  }
+
+  .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metric:nth-child(2) { border-right: 0; }
+  .metric:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
+
+  .price-inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reset-btn { grid-column: 1 / -1; justify-self: start; }
+}
+
+@media (max-width: 620px) {
+  .page-shell { padding-inline: 16px; padding-bottom: 40px; }
+  .masthead { padding-top: 24px; }
+  h1 { max-width: none; font-size: clamp(24px, 7vw, 30px); }
+  .section { padding: 26px 0; }
+  .signal-panel { padding: 18px 16px; }
+  .signal-word { font-size: clamp(46px, 15vw, 60px); }
+  .price-inputs { grid-template-columns: minmax(0, 1fr); }
+
+  .metric-strip, .timeline { grid-template-columns: minmax(0, 1fr); }
+
+  .metric { padding: 12px 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .metric:last-child { border-bottom: 0; }
+
+  .footer { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --paper-soft: #f4f6f8;
+    --paper-strong: #e9edf1;
+    --ink: #111b2b;
+    --muted: #607083;
+    --line: #d7dee5;
+    --line-strong: #aeb9c4;
+    --structure: #123b64;
+    --structure-mid: #567899;
+    --structure-soft: #dce8f2;
+    --accent: #bd1726;
+    --accent-soft: #f7e5e8;
+  }
+
+  body { background: #ffffff; color: #111b2b; font-size: 10pt; }
+  .page-shell { width: 100%; padding: 0; }
+  .masthead { padding-top: 0; }
+  .section, .figure, .table-region, .signal-panel { break-inside: avoid; }
+  .table-region { overflow: visible; }
+  .reset-btn, .skip-link { display: none; }
+  a { text-decoration: none; }
+}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#content">본문으로 이동</a>
+  <main class="page-shell" id="content">
+    <header class="masthead">
+      <p class="kicker">Merger parity monitor · SK이노베이션 096770 × SKIET 361610</p>
+      <h1>SKIET 합병 패리티 모니터</h1>
+      <p class="deck">합병 성사 시 SKIET 1주 = SK이노베이션 0.1174540주. 두 종목의 시세로 지금 어느 티켓이 유리한지, 매수청구·딜 무산 리스크가 켜졌는지 판정한다.</p>
+      <div class="meta-row"><span>합병비율 1 : 0.1174540</span><span>매수청구가 14,620원</span><span>트리거 SK이노 124,474원</span><span>마지막 거래 예정 2026-12-28(월)</span></div>
+    </header>
+
+    <section class="section" aria-label="현재 신호">
+      <div class="signal-panel state-hold" id="signal-panel" aria-live="polite">
+        <div>
+          <p class="signal-kicker">지금 신호 <span class="data-chip" id="s-chip">시세 불러오는 중…</span></p>
+          <p class="signal-word" id="s-word">보류</p>
+          <p class="signal-target" id="s-target">시세 대기</p>
+          <p class="signal-reason" id="s-reason">시세를 불러오면 판정이 표시된다. 자동 시세가 실패하면 아래에 직접 입력한다.</p>
+          <p class="signal-scope">두 종목 사이의 상대가치 신호다 — SK이노베이션 자체의 방향(정유·ESS 펀더멘털)은 판단하지 않는다.</p>
+        </div>
+        <aside class="answer-aside">
+          <dl class="fact-list">
+            <div><dt>딜 상태</dt><dd id="v-deal">—</dd></div>
+            <div><dt>기존 SKIET 보유자</dt><dd id="v-holder">—</dd></div>
+            <div><dt>신규 매수자 주의</dt><dd>8/25 공시 후 취득분은 매수청구권 없음</dd></div>
+          </dl>
+        </aside>
+      </div>
+
+      <dl class="metric-strip">
+        <div class="metric"><dt>신주 등가 (패리티)</dt><dd id="m-parity">—</dd><small>SK이노 현재가 × 0.1174540</small></div>
+        <div class="metric"><dt>SKIET 괴리율</dt><dd id="m-prem">—</dd><small>패리티 대비 프리미엄(+)/할인(−)</small></div>
+        <div class="metric"><dt>트리거 여유</dt><dd id="m-buffer">—</dd><small>SK이노 현재가 vs 124,474원</small></div>
+        <div class="metric"><dt>SKIET 경유 실효매수가</dt><dd id="m-implied">—</dd><small id="m-implied-note">SKIET 가격 ÷ 0.1174540</small></div>
+      </dl>
+    </section>
+
+    <section class="section" aria-labelledby="monitor-input">
+      <div class="section-head"><div><span class="section-no">Prices</span><h2 id="monitor-input">시세 입력 — 자동 실패 시 또는 시나리오 탐색용</h2></div><p class="section-note">값을 직접 고치면 수동 모드로 전환되어 자동 갱신이 멈춘다. 버튼으로 자동 시세로 복귀.</p></div>
+      <div class="price-inputs">
+        <div class="price-field">
+          <label for="in-skiet">SKIET 현재가 (원)</label>
+          <input id="in-skiet" type="number" inputmode="numeric" min="0" step="10" value="15360" aria-describedby="skiet-link">
+          <a id="skiet-link" class="quote-link" href="https://tossinvest.com/stocks/A361610" target="_blank" rel="noopener">토스 시세 361610 ↗</a>
+        </div>
+        <div class="price-field">
+          <label for="in-skino">SK이노베이션 현재가 (원)</label>
+          <input id="in-skino" type="number" inputmode="numeric" min="0" step="100" value="125000" aria-describedby="skino-link">
+          <a id="skino-link" class="quote-link" href="https://tossinvest.com/stocks/A096770" target="_blank" rel="noopener">토스 시세 096770 ↗</a>
+        </div>
+        <button class="reset-btn" type="button" id="btn-auto">자동 시세로 복귀</button>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="monitor-rules">
+      <div class="section-head"><div><span class="section-no">01 · Decision rules</span><h2 id="monitor-rules">판단 구조는 세 줄, 규칙은 네 구간</h2></div><p class="section-note">방향 판단은 SK이노 하나에 대한 판단이고, 괴리율은 티켓 선택만 바꾼다.</p></div>
+      <div class="dominant-grid">
+        <figure class="figure">
+          <figcaption class="figure-head"><strong class="figure-title">괴리율 구간별 신호</strong><span class="unit">괴리율 = SKIET ÷ (SK이노 × 0.1174540) − 1</span></figcaption>
+          <div class="table-region" role="region" aria-label="괴리율 구간별 판단 기준표" tabindex="0">
+            <table>
+              <thead><tr><th>SKIET 괴리율</th><th>신호</th><th>액션</th><th>이유</th></tr></thead>
+              <tbody>
+                <tr><td class="num">+0.5% 이상 (프리미엄)</td><td><span class="status risk">매도</span></td><td>SKIET 매도 (노출 유지 원하면 SK이노 교체)</td><td>같은 자산을 더 비싸게 들고 있는 상태. 성사·무산 양쪽 모두에서 SK이노 직접 보유에 진다</td></tr>
+                <tr><td class="num">−2 ~ +0.5%</td><td><span class="status watch">보류</span></td><td>신규 액션 없음 (노출 원하면 SK이노 직접)</td><td>패리티 근접 — 어느 티켓도 우위 없음</td></tr>
+                <tr><td class="num">−5 ~ −2%</td><td><span class="status watch">보류</span></td><td>관망</td><td>할인이 정지 3주·딜 리스크 보상으로 부족. 할인 확대가 딜 불안 때문인지 확인</td></tr>
+                <tr><td class="num">−5% 이하</td><td><span class="status good">매수</span></td><td>SKIET 매수 = SK이노 저가 입장권 (합병차익)</td><td>단, SK이노가 124,474원 위일 때만. 아래면 할인은 "위험의 가격" → 보류</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="source">자료: DART 주요사항보고서(회사합병결정, 2026-08-25) 기준 자체 판단 규칙 · 투자 참고용</p>
+        </figure>
+        <aside>
+          <ul class="insight-list">
+            <li><span class="eyebrow">원칙 1 · 같은 자산</span>성사 시 SKIET 1주 = SK이노 0.1174540주. 남는 질문은 "SK이노를 살 것인가" 하나다.</li>
+            <li><span class="eyebrow">원칙 2 · 티켓 선택</span>어느 종목으로 살지는 괴리율이 정한다. 패리티보다 비싸면 무조건 SK이노, 충분한 할인일 때만 SKIET.</li>
+            <li><span class="eyebrow">원칙 3 · 딜의 급소</span>SK이노 124,474원 아래면 매수청구(14,620원)가 신주보다 유리해져 청구 증가 → 한도 3,500억 접근 → 딜 무산 리스크.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="monitor-scenario">
+      <div class="section-head"><div><span class="section-no">02 · Scenario ladder</span><h2 id="monitor-scenario">SK이노 주가별 매수청구 유인</h2></div><p class="section-note">주총(11/24)~청구마감(12/14) 사이 SK이노 주가가 곧 딜 확실성이다.</p></div>
+      <div class="table-region" role="region" aria-label="SK이노베이션 주가별 시나리오 표" tabindex="0">
+        <table style="min-width:640px">
+          <caption>신주 등가 vs 매수청구가 14,620원 (단위: 원)</caption>
+          <thead><tr><th class="num">SK이노 주가</th><th class="num">SKIET 신주 등가</th><th class="num">청구가 대비</th><th>판정</th></tr></thead>
+          <tbody>
+            <tr><td class="num">150,000</td><td class="num">17,618</td><td class="num">+20.5%</td><td><span class="status good">청구 유인 소멸 — 딜 안전</span></td></tr>
+            <tr><td class="num">140,000</td><td class="num">16,444</td><td class="num">+12.5%</td><td><span class="status good">안전</span></td></tr>
+            <tr><td class="num">130,000</td><td class="num">15,269</td><td class="num">+4.4%</td><td><span class="status good">안전권</span></td></tr>
+            <tr><td class="num">125,000</td><td class="num">14,682</td><td class="num">+0.4%</td><td><span class="status watch">주의 — 8/25 종가 수준</span></td></tr>
+            <tr class="trigger-row"><td class="num focus">124,474</td><td class="num focus">14,620</td><td class="num focus">0%</td><td><span class="status risk">분기점 (매수청구 등가)</span></td></tr>
+            <tr><td class="num">120,000</td><td class="num">14,094</td><td class="num">−3.6%</td><td><span class="status risk">청구 우위 — 반대접수 증가 예상</span></td></tr>
+            <tr><td class="num">110,000</td><td class="num">12,920</td><td class="num">−11.6%</td><td><span class="status risk">청구 쇄도 — 한도 3,500억 리스크 현실화</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="source">자료: 합병비율·매수청구가 DART 공시(rcpNo 20260825000420), 등가 = SK이노 주가 × 0.1174540</p>
+    </section>
+
+    <section class="section" aria-labelledby="monitor-facts">
+      <div class="section-head"><div><span class="section-no">03 · Deal facts & schedule</span><h2 id="monitor-facts">딜 팩트와 남은 일정</h2></div><p class="section-note">감시 지표: ① SK이노 주가 vs 124,474원 ② 11월 반대의사 접수 규모 ③ SPC 물량(PRS)의 행보.</p></div>
+      <div class="dominant-grid">
+        <div>
+          <div class="table-region" role="region" aria-label="딜 핵심 팩트 표" tabindex="0">
+            <table>
+              <caption>핵심 팩트</caption>
+              <thead><tr><th>항목</th><th>내용</th></tr></thead>
+              <tbody>
+                <tr><td>합병 구조</td><td>SK이노베이션(존속)이 SKIET(소멸, 지분 53.35%)를 흡수합병 — SKIET 상장폐지</td></tr>
+                <tr><td>합병가액</td><td>SK이노 125,862원 / SKIET 14,783원 (기준시가 방식, 할인·할증 없음)</td></tr>
+                <tr><td>신주 발행</td><td>4,481,300주 = SK이노 발행주식의 2.65% 희석</td></tr>
+                <tr><td>매수청구 한도</td><td>3,500억 원 ≈ 2,394만 주 (소액주주 물량 3,815만 주의 62.7%) 초과 시 계약 해제 가능</td></tr>
+                <tr><td>SPC 물량</td><td>1,049만 주(12.8%) — 2025.8 유증분, SK이노가 PRS로 하방 보전 → 우호 추정</td></tr>
+                <tr><td>승인 요건</td><td>SKIET 임시주총 특별결의 — 우호 지분 약 66.2%로 부결 현실성 낮음</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <aside>
+          <ol class="timeline">
+            <li><time>09-09</time><strong>주주확정 기준일</strong></li>
+            <li><time>11-09~23</time><strong>반대의사 접수</strong></li>
+            <li class="key"><time>11-24</time><strong>SKIET 임시주총</strong></li>
+            <li class="key"><time>11-24~12-14</time><strong>매수청구 행사</strong><p>14,620원 · 대금 12-31</p></li>
+            <li><time>12-28</time><strong>마지막 거래(예정)</strong></li>
+            <li><time>12-29~01-17</time><strong>매매정지</strong></li>
+            <li><time>27-01-01</time><strong>합병기일</strong></li>
+            <li class="key"><time>27-01-18</time><strong>SK이노 신주 상장</strong></li>
+          </ol>
+        </aside>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>자료: DART rcpNo 20260825000420 · 시세: 토스증권 비공식 API(1순위)/네이버(폴백) — 로컬 실행 시 실시간, 공개 페이지는 Actions 스냅샷(지연 가능)+우회 시도 · 시세 실패 시 수동 입력</span>
+      <span>투자 판단 참고용 · 매수·매도 권유 아님</span>
+    </footer>
+  </main>
+
+  <script>
+  (function () {
+    var RATIO = 0.1174540;
+    var PUT = 14620;
+    var TRIGGER = 124474;
+    var CODES = { skiet: "361610", skino: "096770" };
+    var DEF = { skiet: 15360, skino: 125000 }; // 2026-08-25 종가
+
+    var state = { mode: "auto", srcLabel: null, localOk: null, proxyIdx: 0, programmatic: false };
+
+    function $(id) { return document.getElementById(id); }
+    function fmt(n) { return Math.round(n).toLocaleString("ko-KR"); }
+    function pct(x, digits) {
+      var d = digits === undefined ? 1 : digits;
+      var v = (x * 100).toFixed(d);
+      return (x >= 0 ? "+" : "") + v + "%";
+    }
+    function clock() {
+      var d = new Date();
+      function z(n) { return (n < 10 ? "0" : "") + n; }
+      return z(d.getHours()) + ":" + z(d.getMinutes()) + ":" + z(d.getSeconds());
+    }
+
+    function setChip(text) { $("s-chip").textContent = text; }
+
+    function setPrices(skiet, skino, chipText) {
+      if (state.mode === "manual") return;
+      state.programmatic = true;
+      $("in-skiet").value = Math.round(skiet);
+      $("in-skino").value = Math.round(skino);
+      state.programmatic = false;
+      state.srcLabel = chipText;
+      compute();
+      setChip(chipText);
+    }
+
+    function compute() {
+      var skiet = parseFloat($("in-skiet").value);
+      var skino = parseFloat($("in-skino").value);
+      var panel = $("signal-panel");
+
+      if (!(skiet > 0) || !(skino > 0)) {
+        ["m-parity", "m-prem", "m-buffer", "m-implied"].forEach(function (id) { $(id).textContent = "—"; });
+        panel.className = "signal-panel state-hold";
+        $("s-word").textContent = "보류";
+        $("s-target").textContent = "시세 대기";
+        $("s-reason").textContent = "두 종목의 현재가를 모두 입력하면 판정이 표시된다.";
+        $("v-deal").textContent = "—";
+        $("v-holder").textContent = "—";
+        return;
+      }
+
+      var parity = skino * RATIO;
+      var prem = skiet / parity - 1;
+      var buffer = skino / TRIGGER - 1;
+      var implied = skiet / RATIO;
+
+      $("m-parity").textContent = fmt(parity) + "원";
+
+      var premEl = $("m-prem");
+      premEl.textContent = pct(prem);
+      premEl.className = prem > 0.005 ? "down" : (prem < -0.05 ? "up" : "");
+
+      var bufEl = $("m-buffer");
+      bufEl.textContent = pct(buffer);
+      bufEl.className = buffer < 0 ? "down" : (buffer < 0.03 ? "focus" : "up");
+
+      $("m-implied").textContent = fmt(implied) + "원";
+      $("m-implied-note").textContent = "SK이노 직접 매수 대비 " + (implied >= skino ? "+" : "−") + fmt(Math.abs(implied - skino)) + "원";
+
+      var deal;
+      if (buffer >= 0.03) {
+        deal = { short: "안전 (여유 " + pct(buffer) + ")", txt: "매수청구 유인 없음 — 한도(3,500억) 리스크 낮음" };
+      } else if (buffer >= 0) {
+        deal = { short: "주의 (여유 " + pct(buffer) + ")", txt: "트리거 124,474원과의 거리가 얇다. 반대접수(11월)·청구 규모 감시" };
+      } else {
+        deal = { short: "위험 — 청구 인더머니 (" + pct(buffer) + ")", txt: "청구가 14,620원이 신주가치보다 유리한 구간. 청구 증가 → 딜 무산 리스크" };
+      }
+      $("v-deal").textContent = deal.short + " · " + deal.txt;
+
+      $("v-holder").textContent = parity < PUT
+        ? "매수청구(14,620원)가 신주가치(" + fmt(parity) + "원)보다 유리 — 반대통지 기한(11/23) 확인"
+        : "신주 수령 가치(" + fmt(parity) + "원)가 청구가보다 " + pct(parity / PUT - 1) + " 위 — 매도/보유는 SK이노 뷰로";
+
+      var s;
+      if (prem > 0.005) {
+        s = {
+          cls: "sell", word: "매도", target: "SKIET → 현금 또는 SK이노 교체",
+          reason: "SKIET가 패리티 대비 " + pct(prem) + " 프리미엄. 보유자는 지금 파는 것이 합병 신주를 기다리는 것보다 " + pct(prem) + " 이득이고(동일 노출을 원하면 SK이노로 교체), 신규 진입은 SK이노 직접 매수만 유효하다."
+        };
+      } else if (prem <= -0.05 && buffer >= 0) {
+        s = {
+          cls: "buy", word: "매수", target: "SKIET (SK이노 저가 입장권)",
+          reason: "할인 " + pct(prem) + ", 딜 안전(트리거 여유 " + pct(buffer) + "). 성사 시 SK이노를 " + fmt(implied) + "원에 사는 효과(직접 매수 대비 −" + fmt(skino - implied) + "원). 단 신규 매수분은 매수청구권이 없고 12월 말부터 약 3주 거래정지를 감수해야 한다."
+        };
+      } else {
+        var why;
+        if (buffer < 0) {
+          why = "SK이노가 트리거 124,474원 아래(여유 " + pct(buffer) + ") — 매수청구·딜 무산 리스크가 켜진 상태라 " + (prem < 0 ? "지금의 SKIET 할인 " + pct(prem) + "은 싼 것이 아니라 위험의 가격이다." : "양쪽 모두 신규 액션을 미룬다.");
+        } else if (prem <= -0.02) {
+          why = "할인 " + pct(prem) + "은 경계 구간 — 거래정지 3주와 딜 리스크 보상으로 부족하다. 할인이 더 벌어지는 이유가 딜 불안 때문인지 확인하라.";
+        } else {
+          why = "패리티 근접(" + pct(prem) + ") — 어느 티켓도 우위가 없다. SK이노 노출을 원하면 SK이노를 직접 산다.";
+        }
+        s = { cls: "hold", word: "보류", target: "양쪽 모두 신규 액션 없음", reason: why };
+      }
+
+      panel.className = "signal-panel state-" + s.cls;
+      $("s-word").textContent = s.word;
+      $("s-target").textContent = s.target;
+      $("s-reason").textContent = s.reason;
+    }
+
+    // ---- data pipeline: local proxy (실시간) → public CORS proxy (우회) → quotes.json (스냅샷) → manual
+    function fetchJsonT(url, ms) {
+      var ctl = new AbortController();
+      var t = setTimeout(function () { ctl.abort(); }, ms || 8000);
+      return fetch(url, { signal: ctl.signal, cache: "no-store" }).then(function (r) {
+        clearTimeout(t);
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      }, function (e) { clearTimeout(t); throw e; });
+    }
+
+    function isPages() { return /github\.io$/.test(location.hostname); }
+
+    function tryLocal() {
+      if (state.localOk === false) return Promise.reject(new Error("local off"));
+      return fetchJsonT("/api/kr?codes=" + CODES.skiet + "," + CODES.skino, 6000).then(function (j) {
+        var a = j[CODES.skiet], b = j[CODES.skino];
+        if (!a || !b || a.error || b.error || !(a.price > 0) || !(b.price > 0)) throw new Error("bad payload");
+        state.localOk = true;
+        setPrices(a.price, b.price, "실시간 · 토스(로컬) " + clock());
+      }).catch(function (e) {
+        if (state.localOk === null) state.localOk = false;
+        throw e;
+      });
+    }
+
+    var TOSS_URL = "https://wts-info-api.tossinvest.com/api/v3/stock-prices?productCodes=A" + CODES.skiet + ",A" + CODES.skino;
+    var PROXIES = [
+      function (u) { return "https://corsproxy.io/?url=" + encodeURIComponent(u); },
+      function (u) { return "https://api.allorigins.win/raw?url=" + encodeURIComponent(u); },
+      function (u) { return "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u); }
+    ];
+
+    function tryProxy() {
+      var idx = state.proxyIdx;
+      return fetchJsonT(PROXIES[idx](TOSS_URL), 9000).then(function (j) {
+        var out = {};
+        (j.result || []).forEach(function (r) { out[r.productCode] = r; });
+        var a = out["A" + CODES.skiet], b = out["A" + CODES.skino];
+        if (!a || !b || !(a.close > 0) || !(b.close > 0)) throw new Error("bad payload");
+        setPrices(a.close, b.close, "실시간 · 토스(우회) " + clock());
+      }).catch(function (e) {
+        state.proxyIdx = (state.proxyIdx + 1) % PROXIES.length;
+        throw e;
+      });
+    }
+
+    function trySnapshot() {
+      return fetchJsonT("./quotes.json?ts=" + Date.now(), 8000).then(function (j) {
+        var a = j.kr && j.kr[CODES.skiet], b = j.kr && j.kr[CODES.skino];
+        if (!a || !b || !(a.price > 0) || !(b.price > 0)) throw new Error("bad payload");
+        if (state.srcLabel && state.srcLabel.indexOf("실시간") === 0) return;
+        var when = j.asOf ? new Date(j.asOf) : null;
+        var label = "스냅샷";
+        if (when && !isNaN(when)) {
+          function z(n) { return (n < 10 ? "0" : "") + n; }
+          label += " · " + z(when.getMonth() + 1) + "-" + z(when.getDate()) + " " + z(when.getHours()) + ":" + z(when.getMinutes()) + " 기준(지연 가능)";
+        }
+        setPrices(a.price, b.price, label);
+      });
+    }
+
+    function liveTick() {
+      if (state.mode === "manual") return;
+      tryLocal().catch(function () {
+        if (isPages()) tryProxy().catch(function () { /* keep last known */ });
+      });
+    }
+
+    // manual mode: user edits an input directly
+    function onUserInput() {
+      if (state.programmatic) { return; }
+      state.mode = "manual";
+      setChip("수동 입력");
+      compute();
+    }
+
+    $("in-skiet").addEventListener("input", onUserInput);
+    $("in-skino").addEventListener("input", onUserInput);
+    $("btn-auto").addEventListener("click", function () {
+      state.mode = "auto";
+      setChip("자동 시세 재시도 중…");
+      state.localOk = null;
+      trySnapshot().catch(function () { });
+      liveTick();
+    });
+
+    compute();
+    setChip("시세 불러오는 중…");
+    trySnapshot().catch(function () { setChip("자동 시세 실패 — 수동 입력 (기본값 8/25 종가)"); });
+    liveTick();
+    setInterval(liveTick, 7000);
+    setInterval(function () { if (state.mode === "auto") trySnapshot().catch(function () { }); }, 60000);
+  })();
+  </script>
+</body>
+</html>
