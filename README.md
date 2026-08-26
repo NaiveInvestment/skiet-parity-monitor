@@ -2,7 +2,7 @@
 
 SK이노베이션(096770) × SK아이이테크놀로지(361610) 흡수합병(비율 1:0.1174540) 상대가치 판정 모니터.
 
-- **공개 페이지**: https://naiveinvestment.github.io/skiet-parity-monitor/ — GitHub Actions가 장중 토스 API 스냅샷을 갱신(무료 스케줄러 특성상 30분~1시간+ 지연). 브라우저는 TradingView 스캐너(20분 지연, CORS 허용)로 20초마다 갱신하고, 공개 CORS 프록시가 살아나면 토스 실시간으로 자동 승격(60초 간격 타진). 항상 가장 신선한 소스가 화면을 차지한다.
+- **공개 페이지**: https://naiveinvestment.github.io/skiet-parity-monitor/ — 장중에는 Actions 상시 폴러(live-poller)가 25초마다 토스 시세를 live 브랜치에 푸시하고, 브라우저는 GitHub API(무캐시)/raw(5분 캐시)로 폴링해 ≈30초-1.5분 지연 준실시간을 표시한다. 폴백: TradingView 스캐너(20분 지연, 20초 간격) → Actions 배포 스냅샷. 공개 CORS 프록시가 살아나면 토스 실시간으로 자동 승격(60초 타진). 항상 가장 신선한 소스가 화면을 차지한다.
 - **로컬 실시간**: `start.bat` 실행 → http://localhost:8788 — 내장 프록시(server.js)가 토스 시세를 5초 간격 중계 (진짜 실시간).
 - 자동 시세가 모두 실패하면 수동 입력으로 동작한다.
 

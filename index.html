@@ -367,7 +367,7 @@ body {
     </section>
 
     <footer class="foot">
-      <span>합병비율 1:0.1174540</span><span>매수청구가 14,620원</span><span>트리거 SK이노 124,474원</span><span>마지막 거래 예정 2026-12-28</span><span>시세: 토스(비공식)·TradingView(20분 지연 폴백)·네이버 · 투자 참고용</span>
+      <span>합병비율 1:0.1174540</span><span>매수청구가 14,620원</span><span>트리거 SK이노 124,474원</span><span>마지막 거래 예정 2026-12-28</span><span>시세: 토스(비공식, Actions 준실시간)·TradingView(20분 지연 폴백)·네이버 · 투자 참고용</span>
     </footer>
   </main>
 
@@ -595,6 +595,23 @@ body {
       }).catch(function (e) { state.proxyIdx = (state.proxyIdx + 1) % PROXIES.length; throw e; });
     }
 
+    // Actions 상시 폴러(live 브랜치, 25초 간격)가 만든 live.json — GitHub API는 캐시가 없어 즉시 최신, raw는 CDN 5분 캐시 백스톱
+    var LIVE_RAW = "https://raw.githubusercontent.com/NaiveInvestment/skiet-parity-monitor/live/live.json";
+    var LIVE_API = "https://api.github.com/repos/NaiveInvestment/skiet-parity-monitor/contents/live.json?ref=live";
+
+    function applyLive(j) {
+      var a = j.kr && j.kr[CODES.skiet], b = j.kr && j.kr[CODES.skino];
+      if (!a || !b || !(a.price > 0) || !(b.price > 0)) throw new Error("bad");
+      var t = Date.parse(j.asOf);
+      if (!(t > 0)) throw new Error("bad");
+      var d = new Date(t);
+      function z(n) { return (n < 10 ? "0" : "") + n; }
+      applyQuotes(a, b, t, "준실시간 " + z(d.getHours()) + ":" + z(d.getMinutes()) + ":" + z(d.getSeconds()), Date.now() - t < 90000 ? "live" : "stale");
+    }
+
+    function tryLiveRaw() { return fetchT(LIVE_RAW + "?ts=" + Date.now(), 8000).then(applyLive); }
+    function tryLiveApi() { return fetchT(LIVE_API, 8000).then(function (r) { return JSON.parse(atob(String(r.content || "").replace(/\s/g, ""))); }).then(applyLive); }
+
     function tvOne(code) {
       return fetchT("https://scanner.tradingview.com/symbol?symbol=" + encodeURIComponent("KRX:" + code) + "&fields=close,change_abs", 8000).then(function (j) {
         if (!(j && j.close > 0)) throw new Error("bad");
@@ -650,7 +667,10 @@ body {
     liveTick();
     setInterval(liveTick, 5000);
     if (isPages()) {
-      // 진짜 실시간(프록시)은 60초마다 부활 여부만 타진, 상시 시세는 TradingView 20분 지연으로 20초마다 갱신
+      // 1순위: Actions 폴러의 live.json(≈30초-1.5분 지연) 2순위: TradingView 20분 지연 3순위: 프록시 부활 타진 — effAt 비교가 자동 조정
+      tryLiveApi().catch(function () { tryLiveRaw().catch(function () { }); });
+      setInterval(function () { tryLiveApi().catch(function () { }); }, 90000);
+      setInterval(function () { tryLiveRaw().catch(function () { }); }, 45000);
       tryTV().catch(function () { });
       tryProxy().catch(function () { });
       setInterval(function () { tryTV().catch(function () { }); }, 20000);

@@ -1,0 +1,33 @@
+name: Live quote poller
+
+# 장중(09:00~20:05 KST, NXT 포함) live 브랜치에 25초 간격 시세 푸시.
+# 크론은 지연될 수 있어 하루 여러 번 기동 — standby 로직이 active 1개만 유지한다.
+# 폴러 파일이 main에 푸시되면 즉시 기동(당일 재시작용).
+on:
+  schedule:
+    - cron: '20 23 * * 0-4'   # 08:20 KST 월-금
+    - cron: '40 23 * * 0-4'   # 08:40 KST (기동 실패 보험)
+    - cron: '0 3 * * 1-5'     # 12:00 KST — 6시간 한도 인계
+    - cron: '0 7 * * 1-5'     # 16:00 KST — NXT 저녁 세션 인계
+  push:
+    branches: [main]
+    paths:
+      - scripts/live-poller.js
+      - .github/workflows/live-poller.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/live-poller.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
