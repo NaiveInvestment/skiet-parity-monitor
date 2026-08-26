@@ -344,6 +344,7 @@ body {
         <header><span>SKIET <span class="code">361610</span></span><span class="badge flat" id="b-skiet">—</span></header>
         <p class="q-price"><span id="p-skiet">—</span><small> 원</small></p>
         <p class="q-chg" id="c-skiet">—</p>
+        <p class="settle-line">지금 사면 SK이노 매수단가 <strong id="iv-skino">—</strong><span id="iv-delta">—</span></p>
         <p class="settle-line">합병 성사 시 가치 <strong id="pv-skiet">—</strong><span id="pv-delta">—</span></p>
         <dl class="q-facts">
           <div><dt>시가총액</dt><dd id="mc-skiet">—</dd></div>
@@ -409,6 +410,12 @@ body {
       $("pc-skiet").textContent = a.prevClose ? fmt(a.prevClose) + "원" : "—";
       $("tg-skino").textContent = pct(buffer);
       $("pv-skiet").textContent = fmt(parity) + "원";
+      var implied = a.price / RATIO;
+      $("iv-skino").textContent = fmt(implied) + "원";
+      var iv = $("iv-delta");
+      if (prem < -0.0005) { iv.textContent = "시장가 " + fmt(b.price) + "원보다 " + fmt(b.price - implied) + "원(" + pct(prem) + ") 싸게 사는 셈"; iv.className = "under"; }
+      else if (prem > 0.0005) { iv.textContent = "시장가 " + fmt(b.price) + "원보다 " + fmt(implied - b.price) + "원(" + pct(prem) + ") 비싸게 사는 셈"; iv.className = "over"; }
+      else { iv.textContent = "시장가 " + fmt(b.price) + "원과 동일"; iv.className = ""; }
       var dv = $("pv-delta"), gap = a.price - parity;
       if (gap > 0) { dv.textContent = "현재가가 " + fmt(gap) + "원(" + pct(prem) + ") 더 비쌈"; dv.className = "over"; }
       else if (gap < 0) { dv.textContent = "현재가가 " + fmt(-gap) + "원(" + pct(prem) + ") 더 쌈"; dv.className = "under"; }
@@ -442,7 +449,7 @@ body {
         $("v-sub").textContent = "현재가 " + fmt(a.price) + "원 = 성사 시 가치 " + fmt(parity) + "원 + 초과분 " + fmt(a.price - parity) + "원 — 초과분은 성사 시 소멸, 무산 시에만 회수 가능";
       } else if (prem < -0.005) {
         w.textContent = "SKIET 유리"; w.className = "v-word skiet";
-        $("v-sub").textContent = "현재가 " + fmt(a.price) + "원 = 성사 시 가치 " + fmt(parity) + "원 − 할인 " + fmt(parity - a.price) + "원 → 성사 전제로 SK이노 할인 매수";
+        $("v-sub").textContent = "현재가 " + fmt(a.price) + "원 = 성사 시 가치 " + fmt(parity) + "원 − 할인 " + fmt(parity - a.price) + "원 → SK이노를 " + fmt(implied) + "원에 사는 셈(시장가 " + fmt(b.price) + "원)";
       } else {
         w.textContent = "동등"; w.className = "v-word flat";
         $("v-sub").textContent = "현재가 ≈ 성사 시 가치 " + fmt(parity) + "원 (패리티)";
