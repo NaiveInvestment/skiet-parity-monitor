@@ -236,8 +236,8 @@ body {
 .v-deal.risk::before { background: var(--accent); }
 .v-deal.watch::before { background: var(--warning); }
 
-.v-note { max-width: 34ch; margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; word-break: keep-all; }
-.v-note strong { color: var(--structure); }
+.range-sec { padding: 0 0 6px; }
+#range { display: block; width: 100%; height: auto; }
 
 .settle-line {
   display: flex;
@@ -338,7 +338,6 @@ body {
         <p class="v-word flat" id="v-word">—</p>
         <p class="v-sub" id="v-sub">합병비율 기준 비교</p>
         <p class="v-deal" id="v-deal">딜 상태 —</p>
-        <p class="v-note">성사 시 SKIET 1주 → SK이노 0.1174540주. 그래서 <strong>성사 시 가치 = SK이노 주가 × 0.1174540</strong>(남색 선)이고, SKIET 판단은 현재가와 이 가치의 차이가 전부다. SK이노 자체는 펀더멘털로 사고파는 종목.</p>
       </div>
 
       <article class="quote-card skiet" aria-label="SKIET 시세">
@@ -351,6 +350,10 @@ body {
           <div><dt>전일종가</dt><dd id="pc-skiet">—</dd></div>
         </dl>
       </article>
+    </section>
+
+    <section class="range-sec" aria-label="SKIET 가격 구조">
+      <svg id="range" viewBox="0 0 960 88" role="img" aria-label="SKIET 가격 구조: 매수청구가 하방, 합병 성사 시 가치, 현재가의 상대 위치"></svg>
     </section>
 
     <section class="chart-sec" aria-label="당일 분봉 추이">
@@ -450,7 +453,39 @@ body {
       else if (buffer >= 0) { d.textContent = "딜 주의 · 트리거 여유 " + pct(buffer); d.className = "v-deal watch"; }
       else { d.textContent = "딜 위험 · 트리거 " + pct(buffer) + " 이탈 · 청구 인더머니"; d.className = "v-deal risk"; }
 
+      renderRange();
       renderChart();
+    }
+
+    function renderRange() {
+      var svg = $("range");
+      var a = quotes.skiet, b = quotes.skino;
+      if (!a || !b) { svg.innerHTML = ""; return; }
+      var settle = b.price * RATIO, cur = a.price;
+      var vals = [settle, PUT, cur];
+      var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+      var pad = (hi - lo) * 0.16 || 500; lo -= pad; hi += pad;
+      var W = 960, L = 36, R = 36, Y = 50;
+      function X(v) { return Math.max(L, Math.min(W - R, L + (W - L - R) * (v - lo) / (hi - lo))); }
+      function TX(x) { return Math.max(76, Math.min(W - 76, x)); }
+      var xs = X(settle), xp = X(PUT), xc = X(cur);
+
+      var out = '<line x1="' + L + '" y1="' + Y + '" x2="' + (W - R) + '" y2="' + Y + '" stroke="var(--line-strong)" stroke-width="2"/>';
+      var gcol = cur >= settle ? "var(--accent)" : "var(--positive)";
+      out += '<rect x="' + Math.min(xs, xc).toFixed(1) + '" y="' + (Y - 6) + '" width="' + Math.abs(xc - xs).toFixed(1) + '" height="12" fill="' + gcol + '" opacity="0.18"/>';
+      var mid = TX((xs + xc) / 2);
+      var gapLabel = (cur >= settle ? "무산 베팅 프리미엄 +" : "할인 −") + fmt(Math.abs(cur - settle)) + "원";
+      out += '<text x="' + mid + '" y="' + (Y + 34) + '" text-anchor="middle" font-size="12" font-weight="750" fill="' + gcol + '">' + gapLabel + "</text>";
+
+      out += '<line x1="' + xp + '" y1="' + (Y - 15) + '" x2="' + xp + '" y2="' + (Y + 15) + '" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 3"/>';
+      out += '<text x="' + TX(xp) + '" y="' + (Y - 24) + '" text-anchor="middle" font-size="12" fill="var(--muted)">하방(청구가) 14,620</text>';
+
+      var closeTogether = Math.abs(xc - xs) < 170;
+      out += '<circle cx="' + xs + '" cy="' + Y + '" r="7" fill="var(--structure)"/>';
+      out += '<text x="' + TX(xs) + '" y="' + (Y + (closeTogether ? 52 : 34)) + '" text-anchor="middle" font-size="12.5" font-weight="800" fill="var(--structure)">성사 시 가치 ' + fmt(settle) + "</text>";
+      out += '<circle cx="' + xc + '" cy="' + Y + '" r="7" fill="var(--accent)"/>';
+      out += '<text x="' + TX(xc) + '" y="' + (Y - (closeTogether ? 40 : 24)) + '" text-anchor="middle" font-size="12.5" font-weight="800" fill="var(--accent)">현재가 ' + fmt(cur) + "</text>";
+      svg.innerHTML = out;
     }
 
     function renderChart() {
