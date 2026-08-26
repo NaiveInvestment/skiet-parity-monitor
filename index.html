@@ -236,6 +236,28 @@ body {
 .v-deal.risk::before { background: var(--accent); }
 .v-deal.watch::before { background: var(--warning); }
 
+.v-note { max-width: 34ch; margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; word-break: keep-all; }
+.v-note strong { color: var(--structure); }
+
+.settle-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0 0 10px;
+  padding: 7px 10px;
+  border-left: 3px solid var(--structure);
+  background: color-mix(in srgb, var(--structure) 8%, transparent);
+  font-size: 12.5px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.settle-line strong { color: var(--ink); font-size: 15px; font-weight: 850; font-variant-numeric: tabular-nums; }
+.settle-line span { font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.settle-line span.over { color: var(--accent); }
+.settle-line span.under { color: var(--positive); }
+
 .chart-sec { padding: 4px 0 0; }
 
 .chart-head {
@@ -316,16 +338,17 @@ body {
         <p class="v-word flat" id="v-word">—</p>
         <p class="v-sub" id="v-sub">합병비율 기준 비교</p>
         <p class="v-deal" id="v-deal">딜 상태 —</p>
+        <p class="v-note">성사 시 SKIET 1주 → SK이노 0.1174540주. 그래서 <strong>성사 시 가치 = SK이노 주가 × 0.1174540</strong>(남색 선)이고, SKIET 판단은 현재가와 이 가치의 차이가 전부다. SK이노 자체는 펀더멘털로 사고파는 종목.</p>
       </div>
 
       <article class="quote-card skiet" aria-label="SKIET 시세">
         <header><span>SKIET <span class="code">361610</span></span><span class="badge flat" id="b-skiet">—</span></header>
         <p class="q-price"><span id="p-skiet">—</span><small> 원</small></p>
         <p class="q-chg" id="c-skiet">—</p>
+        <p class="settle-line">합병 성사 시 가치 <strong id="pv-skiet">—</strong><span id="pv-delta">—</span></p>
         <dl class="q-facts">
           <div><dt>시가총액</dt><dd id="mc-skiet">—</dd></div>
           <div><dt>전일종가</dt><dd id="pc-skiet">—</dd></div>
-          <div><dt>신주 환산가치 (SK이노×비율)</dt><dd id="pv-skiet">—</dd></div>
         </dl>
       </article>
     </section>
@@ -333,13 +356,13 @@ body {
     <section class="chart-sec" aria-label="당일 분봉 추이">
       <div class="chart-head">
         <ul class="legend">
-          <li><span class="lg-mark skiet"></span>SKIET 실제가</li>
-          <li><span class="lg-mark"></span>SK이노 환산가 (×0.1174540)</li>
+          <li><span class="lg-mark skiet"></span>SKIET 현재가</li>
+          <li><span class="lg-mark"></span>성사 시 가치 (SK이노×0.1174540)</li>
           <li><span class="lg-mark put"></span>매수청구가 14,620</li>
         </ul>
-        <span class="chart-unit">원 · 당일 1분봉 · 두 선의 간격 = 괴리</span>
+        <span class="chart-unit">원 · 당일 1분봉 · 빨간 선이 남색 선보다 위면 그 간격만큼 무산에 베팅 중</span>
       </div>
-      <svg id="chart" viewBox="0 0 960 340" role="img" aria-label="SKIET 실제가와 SK이노베이션 환산가의 당일 분봉 추이. 두 선의 간격이 합병비율 기준 괴리다."></svg>
+      <svg id="chart" viewBox="0 0 960 340" role="img" aria-label="SKIET 현재가와 합병 성사 시 가치(SK이노베이션 주가 곱하기 0.1174540)의 당일 분봉 추이. 두 선의 간격이 무산 베팅 프리미엄이다."></svg>
     </section>
 
     <footer class="foot">
@@ -383,6 +406,10 @@ body {
       $("pc-skiet").textContent = a.prevClose ? fmt(a.prevClose) + "원" : "—";
       $("tg-skino").textContent = pct(buffer);
       $("pv-skiet").textContent = fmt(parity) + "원";
+      var dv = $("pv-delta"), gap = a.price - parity;
+      if (gap > 0) { dv.textContent = "현재가가 " + fmt(gap) + "원(" + pct(prem) + ") 더 비쌈"; dv.className = "over"; }
+      else if (gap < 0) { dv.textContent = "현재가가 " + fmt(-gap) + "원(" + pct(prem) + ") 더 쌈"; dv.className = "under"; }
+      else { dv.textContent = "패리티"; dv.className = ""; }
 
       function chg(el, q) {
         var c = q.prevClose ? q.price / q.prevClose - 1 : null;
@@ -406,11 +433,17 @@ body {
       }
 
       var w = $("v-word");
-      $("v-over").textContent = "비율 기준 SKIET " + (prem >= 0 ? "초과 " : "미달 ") + pct(prem);
-      if (prem > 0.005) { w.textContent = "SK이노 유리"; w.className = "v-word skino"; }
-      else if (prem < -0.005) { w.textContent = "SKIET 유리"; w.className = "v-word skiet"; }
-      else { w.textContent = "동등"; w.className = "v-word flat"; }
-      $("v-sub").textContent = "실제 " + fmt(a.price) + "원 vs 환산 " + fmt(parity) + "원 (" + (a.price >= parity ? "+" : "−") + fmt(Math.abs(a.price - parity)) + "원)";
+      $("v-over").textContent = "SKIET 현재가, 성사 시 가치 대비 " + pct(prem);
+      if (prem > 0.005) {
+        w.textContent = "SK이노 유리"; w.className = "v-word skino";
+        $("v-sub").textContent = "현재가 " + fmt(a.price) + "원 = 성사 시 가치 " + fmt(parity) + "원 + 무산 베팅 프리미엄 " + fmt(a.price - parity) + "원";
+      } else if (prem < -0.005) {
+        w.textContent = "SKIET 유리"; w.className = "v-word skiet";
+        $("v-sub").textContent = "현재가 " + fmt(a.price) + "원 = 성사 시 가치 " + fmt(parity) + "원 − 할인 " + fmt(parity - a.price) + "원 → 성사 전제로 SK이노 할인 매수";
+      } else {
+        w.textContent = "동등"; w.className = "v-word flat";
+        $("v-sub").textContent = "현재가 ≈ 성사 시 가치 " + fmt(parity) + "원 (패리티)";
+      }
 
       var d = $("v-deal");
       if (buffer >= 0.03) { d.textContent = "딜 안전 · 트리거 여유 " + pct(buffer); d.className = "v-deal good"; }
