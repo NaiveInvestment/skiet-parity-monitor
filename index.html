@@ -367,7 +367,7 @@ body {
     </section>
 
     <footer class="foot">
-      <span>합병비율 1:0.1174540</span><span>매수청구가 14,620원</span><span>트리거 SK이노 124,474원</span><span>마지막 거래 예정 2026-12-28</span><span>시세: 토스(비공식)/네이버 · 투자 참고용</span>
+      <span>합병비율 1:0.1174540</span><span>매수청구가 14,620원</span><span>트리거 SK이노 124,474원</span><span>마지막 거래 예정 2026-12-28</span><span>시세: 토스(비공식)·TradingView(20분 지연 폴백)·네이버 · 투자 참고용</span>
     </footer>
   </main>
 
@@ -379,7 +379,8 @@ body {
     var SHARES = { skiet: 81787100, skino: 169053331 };
     var CODES = { skiet: "361610", skino: "096770" };
 
-    var state = { localOk: null, proxyIdx: 0, live: false };
+    var state = { localOk: null, proxyIdx: 0, dataAt: 0 };
+    var TV_DELAY = 1200000; // TradingView 무인증 시세는 20분 지연
     var quotes = { skiet: null, skino: null };   // {price, prevClose}
     var series = { skiet: [], skino: [] };       // [{t:'YYYYMMDDHHMM', c}]
 
@@ -388,7 +389,7 @@ body {
     function pct(x, d) { var v = (x * 100).toFixed(d === undefined ? 1 : d); return (x >= 0 ? "+" : "") + v + "%"; }
     function cap(v) { return v >= 1e12 ? (v / 1e12).toFixed(2) + "조" : fmt(v / 1e8) + "억"; }
     function clock() { var d = new Date(); function z(n) { return (n < 10 ? "0" : "") + n; } return z(d.getHours()) + ":" + z(d.getMinutes()) + ":" + z(d.getSeconds()); }
-    function nowKey() { var d = new Date(); function z(n) { return (n < 10 ? "0" : "") + n; } return "" + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + z(d.getHours()) + z(d.getMinutes()); }
+    function keyOf(ms) { var d = new Date(ms); function z(n) { return (n < 10 ? "0" : "") + n; } return "" + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + z(d.getHours()) + z(d.getMinutes()); }
 
     function setChip(text, cls) { var el = $("s-chip"); el.textContent = text; el.className = "data-chip" + (cls ? " " + cls : ""); }
 
@@ -547,16 +548,18 @@ body {
 
     function isPages() { return /github\.io$/.test(location.hostname); }
 
-    function applyQuotes(a, b, chipText) {
+    // effAt = 시세의 유효 시각(ms). 더 신선한 소스만 화면을 덮어쓴다.
+    function applyQuotes(a, b, effAt, chipText, chipCls) {
+      if (effAt < state.dataAt) return;
       quotes.skiet = a; quotes.skino = b;
-      appendLive();
+      state.dataAt = effAt;
+      appendLive(effAt);
       render();
-      setChip(chipText, "live");
-      state.live = true;
+      setChip(chipText, chipCls);
     }
 
-    function appendLive() {
-      var k = nowKey();
+    function appendLive(effAt) {
+      var k = keyOf(effAt);
       function upsert(arr, c) {
         if (!(c > 0)) return;
         if (arr.length && arr[arr.length - 1].t === k) arr[arr.length - 1].c = c;
@@ -572,13 +575,12 @@ body {
         var a = j[CODES.skiet], b = j[CODES.skino];
         if (!a || !b || a.error || b.error || !(a.price > 0) || !(b.price > 0)) throw new Error("bad");
         state.localOk = true;
-        applyQuotes(a, b, "실시간 " + clock());
+        applyQuotes(a, b, Date.now(), "실시간 " + clock(), "live");
       }).catch(function (e) { if (state.localOk === null) state.localOk = false; throw e; });
     }
 
     var TOSS_URL = "https://wts-info-api.tossinvest.com/api/v3/stock-prices?productCodes=A" + CODES.skiet + ",A" + CODES.skino;
     var PROXIES = [
-      function (u) { return "https://corsproxy.io/?url=" + encodeURIComponent(u); },
       function (u) { return "https://api.allorigins.win/raw?url=" + encodeURIComponent(u); },
       function (u) { return "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u); }
     ];
@@ -589,20 +591,31 @@ body {
         (j.result || []).forEach(function (r) { out[r.productCode] = r; });
         var a = out["A" + CODES.skiet], b = out["A" + CODES.skino];
         if (!a || !b || !(a.close > 0) || !(b.close > 0)) throw new Error("bad");
-        applyQuotes({ price: a.close, prevClose: a.base }, { price: b.close, prevClose: b.base }, "실시간(우회) " + clock());
+        applyQuotes({ price: a.close, prevClose: a.base }, { price: b.close, prevClose: b.base }, Date.now(), "실시간(우회) " + clock(), "live");
       }).catch(function (e) { state.proxyIdx = (state.proxyIdx + 1) % PROXIES.length; throw e; });
+    }
+
+    function tvOne(code) {
+      return fetchT("https://scanner.tradingview.com/symbol?symbol=" + encodeURIComponent("KRX:" + code) + "&fields=close,change_abs", 8000).then(function (j) {
+        if (!(j && j.close > 0)) throw new Error("bad");
+        return { price: j.close, prevClose: typeof j.change_abs === "number" ? j.close - j.change_abs : null };
+      });
+    }
+
+    function tryTV() {
+      return Promise.all([tvOne(CODES.skiet), tvOne(CODES.skino)]).then(function (r) {
+        applyQuotes(r[0], r[1], Date.now() - TV_DELAY, "20분 지연 " + clock(), "stale");
+      });
     }
 
     function trySnapshotQuotes() {
       return fetchT("./quotes.json?ts=" + Date.now(), 8000).then(function (j) {
         var a = j.kr && j.kr[CODES.skiet], b = j.kr && j.kr[CODES.skino];
         if (!a || !b) throw new Error("bad");
-        if (state.live) return;
-        quotes.skiet = a; quotes.skino = b;
-        render();
         var when = j.asOf ? new Date(j.asOf) : null;
+        var ok = when && !isNaN(when);
         function z(n) { return (n < 10 ? "0" : "") + n; }
-        setChip(when && !isNaN(when) ? "스냅샷 " + z(when.getMonth() + 1) + "-" + z(when.getDate()) + " " + z(when.getHours()) + ":" + z(when.getMinutes()) : "스냅샷", "stale");
+        applyQuotes(a, b, ok ? when.getTime() : 0, ok ? "스냅샷 " + z(when.getMonth() + 1) + "-" + z(when.getDate()) + " " + z(when.getHours()) + ":" + z(when.getMinutes()) : "스냅샷", "stale");
       });
     }
 
@@ -628,17 +641,23 @@ body {
 
     function liveTick() {
       tryLocal().catch(function () {
-        if (isPages()) tryProxy().catch(function () { if (!state.live) setChip("연결 없음 — 스냅샷 표시", "stale"); });
-        else if (!state.live) setChip("연결 없음 — 스냅샷 표시", "stale");
+        if (!isPages() && !state.dataAt) setChip("연결 없음 — 스냅샷 표시", "stale");
       });
     }
 
-    trySnapshotQuotes().catch(function () { });
+    trySnapshotQuotes().catch(function () { if (!state.dataAt) setChip("연결 없음 — 데이터 대기", "stale"); });
     loadChart();
     liveTick();
     setInterval(liveTick, 5000);
+    if (isPages()) {
+      // 진짜 실시간(프록시)은 60초마다 부활 여부만 타진, 상시 시세는 TradingView 20분 지연으로 20초마다 갱신
+      tryTV().catch(function () { });
+      tryProxy().catch(function () { });
+      setInterval(function () { tryTV().catch(function () { }); }, 20000);
+      setInterval(function () { tryProxy().catch(function () { }); }, 60000);
+    }
     setInterval(loadChart, 60000);
-    setInterval(function () { if (!state.live) trySnapshotQuotes().catch(function () { }); }, 60000);
+    setInterval(function () { trySnapshotQuotes().catch(function () { }); }, 60000);
   })();
   </script>
 </body>
