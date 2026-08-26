@@ -363,9 +363,9 @@ body {
           <li><span class="lg-mark"></span>성사 시 가치 (SK이노×0.1174540)</li>
           <li><span class="lg-mark put"></span>매수청구가 14,620</li>
         </ul>
-        <span class="chart-unit">원 · 당일 1분봉 · 빨간 선이 남색 선보다 위면 그 간격만큼 무산에 베팅 중</span>
+        <span class="chart-unit">원 · 당일 1분봉 · 두 선의 간격 = 성사가치 대비 초과/할인</span>
       </div>
-      <svg id="chart" viewBox="0 0 960 340" role="img" aria-label="SKIET 현재가와 합병 성사 시 가치(SK이노베이션 주가 곱하기 0.1174540)의 당일 분봉 추이. 두 선의 간격이 무산 베팅 프리미엄이다."></svg>
+      <svg id="chart" viewBox="0 0 960 340" role="img" aria-label="SKIET 현재가와 합병 성사 시 가치(SK이노베이션 주가 곱하기 0.1174540)의 당일 분봉 추이. 두 선의 간격이 성사가치 대비 초과 또는 할인이다."></svg>
     </section>
 
     <footer class="foot">
@@ -439,7 +439,7 @@ body {
       $("v-over").textContent = "SKIET 현재가, 성사 시 가치 대비 " + pct(prem);
       if (prem > 0.005) {
         w.textContent = "SK이노 유리"; w.className = "v-word skino";
-        $("v-sub").textContent = "현재가 " + fmt(a.price) + "원 = 성사 시 가치 " + fmt(parity) + "원 + 무산 베팅 프리미엄 " + fmt(a.price - parity) + "원";
+        $("v-sub").textContent = "현재가 " + fmt(a.price) + "원 = 성사 시 가치 " + fmt(parity) + "원 + 초과분 " + fmt(a.price - parity) + "원 — 초과분은 성사 시 소멸, 무산 시에만 회수 가능";
       } else if (prem < -0.005) {
         w.textContent = "SKIET 유리"; w.className = "v-word skiet";
         $("v-sub").textContent = "현재가 " + fmt(a.price) + "원 = 성사 시 가치 " + fmt(parity) + "원 − 할인 " + fmt(parity - a.price) + "원 → 성사 전제로 SK이노 할인 매수";
@@ -474,7 +474,7 @@ body {
       var gcol = cur >= settle ? "var(--accent)" : "var(--positive)";
       out += '<rect x="' + Math.min(xs, xc).toFixed(1) + '" y="' + (Y - 6) + '" width="' + Math.abs(xc - xs).toFixed(1) + '" height="12" fill="' + gcol + '" opacity="0.18"/>';
       var mid = TX((xs + xc) / 2);
-      var gapLabel = (cur >= settle ? "무산 베팅 프리미엄 +" : "할인 −") + fmt(Math.abs(cur - settle)) + "원";
+      var gapLabel = (cur >= settle ? "성사가치 초과 +" : "성사가치 할인 −") + fmt(Math.abs(cur - settle)) + "원" + (cur >= settle ? " (성사 시 소멸)" : "");
       out += '<text x="' + mid + '" y="' + (Y + 34) + '" text-anchor="middle" font-size="12" font-weight="750" fill="' + gcol + '">' + gapLabel + "</text>";
 
       out += '<line x1="' + xp + '" y1="' + (Y - 15) + '" x2="' + xp + '" y2="' + (Y + 15) + '" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 3"/>';
