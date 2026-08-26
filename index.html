@@ -239,24 +239,19 @@ body {
 .range-sec { padding: 0 0 6px; }
 #range { display: block; width: 100%; height: auto; }
 
-.settle-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 8px;
+.settle-box {
+  display: grid;
+  gap: 3px;
   margin: 0 0 10px;
-  padding: 7px 10px;
+  padding: 8px 10px;
   border-left: 3px solid var(--structure);
   background: color-mix(in srgb, var(--structure) 8%, transparent);
-  font-size: 12.5px;
-  color: var(--muted);
-  font-weight: 700;
 }
 
-.settle-line strong { color: var(--ink); font-size: 15px; font-weight: 850; font-variant-numeric: tabular-nums; }
-.settle-line span { font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.settle-line span.over { color: var(--accent); }
-.settle-line span.under { color: var(--positive); }
+.settle-box > div { display: flex; align-items: baseline; gap: 2px 12px; }
+.settle-box dt { color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.settle-box dd { margin: 0; flex: 1; min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.settle-box dd strong { color: var(--ink); font-size: 14px; font-weight: 850; }
 
 .chart-sec { padding: 4px 0 0; }
 
@@ -344,8 +339,10 @@ body {
         <header><span>SKIET <span class="code">361610</span></span><span class="badge flat" id="b-skiet">—</span></header>
         <p class="q-price"><span id="p-skiet">—</span><small> 원</small></p>
         <p class="q-chg" id="c-skiet">—</p>
-        <p class="settle-line">지금 사면 SK이노 매수단가 <strong id="iv-skino">—</strong><span id="iv-delta">—</span></p>
-        <p class="settle-line">합병 성사 시 가치 <strong id="pv-skiet">—</strong><span id="pv-delta">—</span></p>
+        <dl class="settle-box">
+          <div><dt>지금 사면 SK이노 단가</dt><dd><strong id="iv-skino">—</strong></dd></div>
+          <div><dt>합병 성사 시 가치</dt><dd><strong id="pv-skiet">—</strong></dd></div>
+        </dl>
         <dl class="q-facts">
           <div><dt>시가총액</dt><dd id="mc-skiet">—</dd></div>
           <div><dt>전일종가</dt><dd id="pc-skiet">—</dd></div>
@@ -412,14 +409,6 @@ body {
       $("pv-skiet").textContent = fmt(parity) + "원";
       var implied = a.price / RATIO;
       $("iv-skino").textContent = fmt(implied) + "원";
-      var iv = $("iv-delta");
-      if (prem < -0.0005) { iv.textContent = "시장가 " + fmt(b.price) + "원보다 " + fmt(b.price - implied) + "원(" + pct(prem) + ") 싸게 사는 셈"; iv.className = "under"; }
-      else if (prem > 0.0005) { iv.textContent = "시장가 " + fmt(b.price) + "원보다 " + fmt(implied - b.price) + "원(" + pct(prem) + ") 비싸게 사는 셈"; iv.className = "over"; }
-      else { iv.textContent = "시장가 " + fmt(b.price) + "원과 동일"; iv.className = ""; }
-      var dv = $("pv-delta"), gap = a.price - parity;
-      if (gap > 0) { dv.textContent = "현재가가 " + fmt(gap) + "원(" + pct(prem) + ") 더 비쌈"; dv.className = "over"; }
-      else if (gap < 0) { dv.textContent = "현재가가 " + fmt(-gap) + "원(" + pct(prem) + ") 더 쌈"; dv.className = "under"; }
-      else { dv.textContent = "패리티"; dv.className = ""; }
 
       function chg(el, q) {
         var c = q.prevClose ? q.price / q.prevClose - 1 : null;
@@ -449,7 +438,7 @@ body {
         $("v-sub").textContent = "현재가 " + fmt(a.price) + "원 = 성사 시 가치 " + fmt(parity) + "원 + 초과분 " + fmt(a.price - parity) + "원 — 초과분은 성사 시 소멸, 무산 시에만 회수 가능";
       } else if (prem < -0.005) {
         w.textContent = "SKIET 유리"; w.className = "v-word skiet";
-        $("v-sub").textContent = "현재가 " + fmt(a.price) + "원 = 성사 시 가치 " + fmt(parity) + "원 − 할인 " + fmt(parity - a.price) + "원 → SK이노를 " + fmt(implied) + "원에 사는 셈(시장가 " + fmt(b.price) + "원)";
+        $("v-sub").textContent = "현재가 " + fmt(a.price) + "원 = 성사 시 가치 " + fmt(parity) + "원 − 할인 " + fmt(parity - a.price) + "원 → SK이노를 " + fmt(implied) + "원에 사는 셈";
       } else {
         w.textContent = "동등"; w.className = "v-word flat";
         $("v-sub").textContent = "현재가 ≈ 성사 시 가치 " + fmt(parity) + "원 (패리티)";
