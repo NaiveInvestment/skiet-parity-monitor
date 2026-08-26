@@ -32,7 +32,7 @@ jobs:
       - name: Stage site
         run: |
           mkdir -p _site
-          cp index.html quotes.json _site/
+          cp index.html quotes.json chart.json _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

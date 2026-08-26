@@ -46,4 +46,20 @@ async function krQuote(code) {
   return krQuoteNaver(code);
 }
 
-module.exports = { krQuote };
+// 당일 분봉 (Naver fchart, EUC-KR XML이지만 숫자 필드만 쓰므로 안전)
+async function krMinutes(code) {
+  const res = await fetch(`https://fchart.stock.naver.com/sise.nhn?symbol=${encodeURIComponent(code)}&timeframe=minute&count=600&requestType=0`, {
+    headers: { 'User-Agent': UA },
+  });
+  if (!res.ok) throw new Error(`${res.status} fchart ${code}`);
+  const txt = await res.text();
+  const pts = [];
+  const re = /data="(\d{12})\|[^|]*\|[^|]*\|[^|]*\|(\d+)\|/g;
+  let m;
+  while ((m = re.exec(txt))) pts.push({ t: m[1], c: Number(m[2]) });
+  if (!pts.length) throw new Error('fchart empty ' + code);
+  const day = pts[pts.length - 1].t.slice(0, 8);
+  return pts.filter((p) => p.t.slice(0, 8) === day);
+}
+
+module.exports = { krQuote, krMinutes };

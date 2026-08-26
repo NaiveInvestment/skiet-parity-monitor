@@ -3,7 +3,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { krQuote } = require('./quotes-lib');
+const { krQuote, krMinutes } = require('./quotes-lib');
 
 const PORT = Number(process.env.PORT) || 8788;
 const ROOT = __dirname;
@@ -30,6 +30,13 @@ http.createServer(async (req, res) => {
       const results = await Promise.allSettled(codes.map(krQuote));
       const out = {};
       results.forEach((r, i) => { out[codes[i]] = r.status === 'fulfilled' ? r.value : { error: String(r.reason) }; });
+      return send(200, JSON.stringify(out));
+    }
+    if (url.pathname === '/api/chart') {
+      const codes = (url.searchParams.get('codes') || '').split(',').filter(Boolean);
+      const results = await Promise.allSettled(codes.map(krMinutes));
+      const out = {};
+      results.forEach((r, i) => { out[codes[i]] = r.status === 'fulfilled' ? r.value : []; });
       return send(200, JSON.stringify(out));
     }
     let file = url.pathname === '/' ? '/index.html' : url.pathname;
